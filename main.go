@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"text/template"
+	"time"
 )
 
 func fatalif(err error) {
@@ -46,8 +48,18 @@ func printWildJSON(m map[string]interface{}) {
 	}
 }
 
+func getMetric(SLO float64, cutoff float64) float64 {
+	rand.Seed(time.Now().UnixNano())
+	if rand.Float64() < (SLO / 100.0) {
+		return float64(rand.Intn(int(cutoff)))
+	}
+	return cutoff + float64(rand.Intn(int(cutoff)))
+}
+
 func main() {
 	conf := readWildJSON("conf.json")
+	conf["value"] = getMetric(conf["metric_slo"].(float64),
+		conf["metric_cuttoff_value"].(float64))
 	fmt.Println("Configuration:")
 	printWildJSON(conf)
 
