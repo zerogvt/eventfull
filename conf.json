@@ -1,0 +1,7 @@
+{
+    "host":        "host.pluto.in.orbit",
+	"environment": "dry_environment",
+	"elapsed":     123,
+	"dataage":     21,
+    "correct":     true
+}
