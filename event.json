@@ -1,22 +1,6 @@
-[
-    {
-        "eventType": "SL8",
-        "service": "awesome_service",
-        "offering": "awesome_offerings",
-        "host": "{{.host}}",
-        "environment": "{{.environment}}",
-        "metric": "freshness",
-        "value": "{{.dataage}}",
-        "elapsed": "{{.elapsed}}"
-    },
-    {
-        "eventType": "SLI",
-        "service": "awesome_service",
-        "offering": "awesome_offerings",
-        "host": "{{.host}}",
-        "environment": "{{.environment}}",
-        "metric": "correctness",
-        "value": "{{.correct}}",
-        "elapsed": "{{.elapsed}}"
-    }
-]
+{
+    "eventType":    "SLI",
+    "service":      "{{.service_name}}",
+    "metric":       "{{.metric_name}}",
+    "value":        "{{.metric_value}}"
+}
