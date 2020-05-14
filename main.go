@@ -48,7 +48,7 @@ func printWildJSON(m map[string]interface{}) {
 	}
 }
 
-func getMetric(SLO float64, cutoff float64) float64 {
+func getRandomMetric(SLO float64, cutoff float64) float64 {
 	rand.Seed(time.Now().UnixNano())
 	if rand.Float64() < (SLO / 100.0) {
 		return float64(rand.Intn(int(cutoff)))
@@ -56,46 +56,82 @@ func getMetric(SLO float64, cutoff float64) float64 {
 	return cutoff + float64(rand.Intn(int(cutoff)))
 }
 
+func createEvent(ut *template.Template, conf map[string]interface{}) (bytes.Buffer, error) {
+	//Execute template according to configuration conf
+	var evt bytes.Buffer
+	err := ut.Execute(&evt, conf)
+	return evt, err
+}
+
+func gzipBuffer(buf bytes.Buffer) (bytes.Buffer, error) {
+	var err error
+	var zipped bytes.Buffer
+	zw := gzip.NewWriter(&zipped)
+	if _, err = zw.Write(buf.Bytes()); err != nil {
+		log.Fatal(err)
+	}
+	if err = zw.Close(); err != nil {
+		log.Fatal(err)
+	}
+	return zipped, err
+}
+
+func postEventToNR(buf bytes.Buffer) error {
+	var err error
+	var resp *http.Response
+	var body []byte
+	nrURL := fmt.Sprintf("https://insights-collector.newrelic.com/v1/accounts/%s/events",
+		os.Getenv("NEW_RELIC_ACCOUNT_ID"))
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", nrURL, bytes.NewReader(buf.Bytes()))
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("X-Insert-Key", os.Getenv("NEW_RELIC_INSIGHTS_KEY"))
+	req.Header.Add("Content-Encoding", "gzip")
+	resp, err = client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	body, err = ioutil.ReadAll(resp.Body)
+	fmt.Printf("Response code: %s, body: %s\n", resp.Status, string(body))
+	return err
+}
+
+func emitEvent(ut *template.Template, conf map[string]interface{}) error {
+	//Get our "value"
+	conf["value"] = getRandomMetric(conf["metric_slo"].(float64),
+		conf["metric_cuttoff_value"].(float64))
+
+	fmt.Printf("value: %4.0f, ", conf["value"])
+
+	//Execute template according to configuration conf
+	evt, err := createEvent(ut, conf)
+	if err != nil {
+		return err
+	}
+	//gzip evt json
+	zbuf, err := gzipBuffer(evt)
+	if err != nil {
+		return err
+	}
+	//send gzipped json to NR
+	err = postEventToNR(zbuf)
+	return err
+}
+
 func main() {
 	conf := readWildJSON("conf.json")
-	conf["value"] = getMetric(conf["metric_slo"].(float64),
-		conf["metric_cuttoff_value"].(float64))
 	fmt.Println("Configuration:")
 	printWildJSON(conf)
 
-	nrURL := fmt.Sprintf("https://insights-collector.newrelic.com/v1/accounts/%s/events",
-		os.Getenv("NEW_RELIC_ACCOUNT_ID"))
-
-	//Read json template
+	//Read event template
 	fbytes, err := ioutil.ReadFile("event.json")
 	ut, err := template.New("event").Parse(string(fbytes))
 	fatalif(err)
 
-	//Execute template and produce a specific event
-	var evt bytes.Buffer
-	err = ut.Execute(&evt, conf)
-	fatalif(err)
-
-	//gzip json
-	var reqBody bytes.Buffer
-	zw := gzip.NewWriter(&reqBody)
-	if _, err := zw.Write(evt.Bytes()); err != nil {
-		log.Fatal(err)
+	//create and send an event
+	for {
+		emitEvent(ut, conf)
+		time.Sleep(2 * time.Second)
 	}
-	if err := zw.Close(); err != nil {
-		log.Fatal(err)
-	}
-
-	//send gzipped json to NR
-	client := &http.Client{}
-	req, err := http.NewRequest("POST", nrURL, bytes.NewReader(reqBody.Bytes()))
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("X-Insert-Key", os.Getenv("NEW_RELIC_INSIGHTS_KEY"))
-	req.Header.Add("Content-Encoding", "gzip")
-	resp, err := client.Do(req)
-	fatalif(err)
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	fatalif(err)
-	fmt.Printf("Response code: %s, body: %s\n", resp.Status, string(body))
 }
