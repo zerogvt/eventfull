@@ -2,5 +2,6 @@
     "service_name": "test_service",
     "metric_name":  "metric",
     "metric_cuttoff_value": 400,
-    "metric_slo": 90
+    "metric_slo": 90,
+    "repeat_every_msecs": 1000
 }

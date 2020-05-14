@@ -130,8 +130,14 @@ func main() {
 	fatalif(err)
 
 	//create and send an event
-	for {
+	for repeat := true; repeat; {
 		emitEvent(ut, conf)
-		time.Sleep(2 * time.Second)
+		repeat = false
+		if r, ok := conf["repeat_every_msecs"]; ok {
+			if rv, ok := r.(float64); ok {
+				time.Sleep(time.Duration(rv) * time.Millisecond)
+				repeat = true
+			}
+		}
 	}
 }
