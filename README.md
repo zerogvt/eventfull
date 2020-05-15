@@ -1,12 +1,11 @@
 [![Build Status](https://travis-ci.org/zerogvt/eventfull.svg?branch=master)](https://travis-ci.org/github/zerogvt/eventfull) [![Go Report Card](https://goreportcard.com/badge/github.com/zerogvt/eventfull)](https://goreportcard.com/report/github.com/zerogvt/eventfull)
 
-# eventfull
+# Eventfull
 
-A small application that can serve as a custom events source for [New Relic](https://docs.newrelic.com/docs/insights/insights-data-sources/custom-data/introduction-event-api).
+Eventfull is a tiny application that can serve as a custom events source for [New Relic](https://docs.newrelic.com/docs/insights/insights-data-sources/custom-data/introduction-event-api).
 
-# Interface
-
-The interface consists of 2 json files:
+# User Interface
+The "user interface" consists of 2 json files:
 
 ## Event Template JSON
 `event.json` is essentially the template of the custom event. As per NR requirements you need to include at least the field `eventType`. The rest of the fields are up to you.
@@ -20,6 +19,7 @@ Here you can set specific values for templatized settings in the `event.json`. Y
 
 ## How to build and use
 - clone this repo
+- `cd eventfull\eventfull` 
 - Edit `event.json` and `conf.json` to your specs.
 - `$ go build`
 - `$ ./eventfull`
