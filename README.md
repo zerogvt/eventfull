@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/zerogvt/eventfull.svg?branch=master)](https://travis-ci.org/github/zerogvt/eventfull)
+
 # eventfull
 
 A small application that can serve as a custom events source for [New Relic](https://docs.newrelic.com/docs/insights/insights-data-sources/custom-data/introduction-event-api).
