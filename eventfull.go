@@ -1,4 +1,4 @@
-package main
+package eventfull
 
 import (
 	"bytes"
@@ -123,14 +123,16 @@ func emitEvent(ut *template.Template, conf map[string]interface{}) error {
 	return err
 }
 
-func main() {
-	conf, err := readGenericJSON("conf.json")
+// Daemon will loop accordind to settings in configurationFile and
+// send out events cookie cut from eventTemplateFile
+func Daemon(configurationFile string, eventTemplateFile string) {
+	conf, err := readGenericJSON(configurationFile)
 	fatalif(err)
 	fmt.Println("Configuration:")
 	printGenericJSON(conf)
 
 	//Read event template
-	fbytes, err := ioutil.ReadFile("event.json")
+	fbytes, err := ioutil.ReadFile(eventTemplateFile)
 	ut, err := template.New("event").Parse(string(fbytes))
 	fatalif(err)
 
