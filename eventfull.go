@@ -104,7 +104,7 @@ func postEventToNR(buf bytes.Buffer) error {
 func emitEvent(ut *template.Template, conf map[string]interface{}) error {
 	//Get our "value"
 	conf["value"] = getRandomMetric(conf["metric_slo"].(float64),
-		conf["metric_cuttoff_value"].(float64))
+		conf["metric_cutoff_value"].(float64))
 
 	fmt.Printf("value: %4.0f, ", conf["value"])
 
