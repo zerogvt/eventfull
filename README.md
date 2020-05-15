@@ -1,4 +1,7 @@
 [![Build Status](https://travis-ci.org/zerogvt/eventfull.svg?branch=master)](https://travis-ci.org/github/zerogvt/eventfull)
+https://goreportcard.com/report/github.com/zerogvt/eventfull
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/zerogvt/eventfull)](https://goreportcard.com/report/github.com/zerogvt/eventfull)
 
 # eventfull
 
