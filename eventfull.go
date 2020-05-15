@@ -20,27 +20,31 @@ func fatalif(err error) {
 	}
 }
 
-func readWildJSON(path string) map[string]interface{} {
+func readGenericJSON(path string) (map[string]interface{}, error) {
 	fbytes, err := ioutil.ReadFile(path)
-	fatalif(err)
+	if err != nil {
+		return nil, err
+	}
 	var f interface{}
 	err = json.Unmarshal(fbytes, &f)
-	fatalif(err)
-	return f.(map[string]interface{})
+	if err != nil {
+		return nil, err
+	}
+	return f.(map[string]interface{}), nil
 }
 
-func printWildJSON(m map[string]interface{}) {
+func printGenericJSON(m map[string]interface{}) {
 	for k, v := range m {
 		switch vv := v.(type) {
 		case string:
-			fmt.Printf("  %s: %s\n", k, vv)
+			fmt.Printf("  %-25s: %s\n", k, vv)
 		case float64:
-			fmt.Printf("  %s: %f\n", k, vv)
+			fmt.Printf("  %-25s: %.2f\n", k, vv)
 		case bool:
-			fmt.Printf("  %s: %t\n", k, vv)
+			fmt.Printf("  %-25s: %t\n", k, vv)
 		case map[string]interface{}:
 			fmt.Print("  [")
-			printWildJSON(vv)
+			printGenericJSON(vv)
 			fmt.Print("  ]\n")
 		default:
 			fmt.Println(k, "is of a type I don't know how to handle")
@@ -120,9 +124,10 @@ func emitEvent(ut *template.Template, conf map[string]interface{}) error {
 }
 
 func main() {
-	conf := readWildJSON("conf.json")
+	conf, err := readGenericJSON("conf.json")
+	fatalif(err)
 	fmt.Println("Configuration:")
-	printWildJSON(conf)
+	printGenericJSON(conf)
 
 	//Read event template
 	fbytes, err := ioutil.ReadFile("event.json")
