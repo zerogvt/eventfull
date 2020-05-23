@@ -1,4 +1,4 @@
-package eventfull
+package eventfullclient
 
 import (
 	"testing"

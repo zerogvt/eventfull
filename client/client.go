@@ -1,4 +1,4 @@
-package eventfull
+package eventfullclient
 
 import (
 	"bytes"
@@ -33,7 +33,8 @@ func readGenericJSON(path string) (map[string]interface{}, error) {
 	return f.(map[string]interface{}), nil
 }
 
-func printGenericJSON(m map[string]interface{}) {
+// PrintGenericJSON prints out a generic JSON
+func PrintGenericJSON(m map[string]interface{}) {
 	for k, v := range m {
 		switch vv := v.(type) {
 		case string:
@@ -44,7 +45,7 @@ func printGenericJSON(m map[string]interface{}) {
 			fmt.Printf("  %-25s: %t\n", k, vv)
 		case map[string]interface{}:
 			fmt.Print("  [")
-			printGenericJSON(vv)
+			PrintGenericJSON(vv)
 			fmt.Print("  ]\n")
 		default:
 			fmt.Println(k, "is of a type I don't know how to handle")
@@ -129,7 +130,7 @@ func Daemon(configurationFile string, eventTemplateFile string) {
 	conf, err := readGenericJSON(configurationFile)
 	fatalif(err)
 	fmt.Println("Configuration:")
-	printGenericJSON(conf)
+	PrintGenericJSON(conf)
 
 	//Read event template
 	fbytes, err := ioutil.ReadFile(eventTemplateFile)
