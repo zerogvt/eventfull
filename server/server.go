@@ -31,7 +31,6 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		body = unzipped.Bytes()
-		//fmt.Println(string(body))
 	default:
 		http.Error(w, "Don't know how to unzip.", http.StatusBadRequest)
 		return

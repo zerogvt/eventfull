@@ -65,7 +65,6 @@ func createEvent(ut *template.Template, conf map[string]interface{}) (bytes.Buff
 	//Execute template according to configuration conf
 	var evt bytes.Buffer
 	err := ut.Execute(&evt, conf)
-	fmt.Println(string(evt.Bytes()))
 	return evt, err
 }
 
@@ -142,15 +141,13 @@ func emitEvent(ut *template.Template, conf map[string]interface{}) error {
 	conf["metric_value"] = getRandomMetric(conf["metric_slo"].(float64),
 		conf["metric_cutoff_value"].(float64))
 
-	fmt.Printf("metric_value: %4.0f, ", conf["metric_value"])
-
 	//Execute template according to configuration conf
 	evt, err := createEvent(ut, conf)
 	if err != nil {
 		return err
 	}
 	//gzip evt json
-	fmt.Println(string(evt.Bytes()))
+	fmt.Printf("\nWill zip and POST evt:%s", string(evt.Bytes()))
 	zbuf, err := gzipBuffer(evt)
 	if err != nil {
 		return err
