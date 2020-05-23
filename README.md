@@ -26,7 +26,7 @@ Here you can set specific values for templatized settings in the `event.json`. Y
 - `cd eventfull\eventfull` 
 - Edit `event.json` and `conf.json` to your specs.
 - `$ go build`
-- `$ ./eventfull`
+- `$ ./eventfull client`
   
 ## Use cases
 - Test various custom events formats.
