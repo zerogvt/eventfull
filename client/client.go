@@ -65,6 +65,7 @@ func createEvent(ut *template.Template, conf map[string]interface{}) (bytes.Buff
 	//Execute template according to configuration conf
 	var evt bytes.Buffer
 	err := ut.Execute(&evt, conf)
+	fmt.Println(string(evt.Bytes()))
 	return evt, err
 }
 
@@ -79,6 +80,21 @@ func gzipBuffer(buf bytes.Buffer) (bytes.Buffer, error) {
 		log.Fatal(err)
 	}
 	return zipped, err
+}
+
+//UnzipBuffer unzips a buffer previously zipped with gzip
+func UnzipBuffer(zipped bytes.Buffer) (bytes.Buffer, error) {
+	var err error
+	var unzipped []byte
+	var zr *gzip.Reader
+	if zr, err = gzip.NewReader(&zipped); err != nil {
+		log.Fatal(err)
+	}
+	defer zr.Close()
+	if unzipped, err = ioutil.ReadAll(zr); err != nil {
+		log.Fatal(err)
+	}
+	return *bytes.NewBuffer(unzipped), err
 }
 
 func postEventToNR(buf bytes.Buffer) error {
@@ -102,12 +118,31 @@ func postEventToNR(buf bytes.Buffer) error {
 	return err
 }
 
+func postEvent(url string, buf bytes.Buffer) error {
+	var err error
+	var resp *http.Response
+	var body []byte
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", url, bytes.NewReader(buf.Bytes()))
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Content-Encoding", "gzip")
+	resp, err = client.Do(req)
+	if err != nil {
+		fmt.Printf("[ERROR] %s\n", err)
+		return err
+	}
+	defer resp.Body.Close()
+	body, err = ioutil.ReadAll(resp.Body)
+	fmt.Printf("Response code: %s, body: %s\n", resp.Status, string(body))
+	return err
+}
+
 func emitEvent(ut *template.Template, conf map[string]interface{}) error {
 	//Get our "value"
-	conf["value"] = getRandomMetric(conf["metric_slo"].(float64),
+	conf["metric_value"] = getRandomMetric(conf["metric_slo"].(float64),
 		conf["metric_cutoff_value"].(float64))
 
-	fmt.Printf("value: %4.0f, ", conf["value"])
+	fmt.Printf("metric_value: %4.0f, ", conf["metric_value"])
 
 	//Execute template according to configuration conf
 	evt, err := createEvent(ut, conf)
@@ -115,12 +150,18 @@ func emitEvent(ut *template.Template, conf map[string]interface{}) error {
 		return err
 	}
 	//gzip evt json
+	fmt.Println(string(evt.Bytes()))
 	zbuf, err := gzipBuffer(evt)
 	if err != nil {
 		return err
 	}
-	//send gzipped json to NR
-	err = postEventToNR(zbuf)
+
+	if url, ok := conf["url"]; ok {
+		err = postEvent(url.(string), zbuf)
+	} else {
+		//send gzipped json to NR
+		err = postEventToNR(zbuf)
+	}
 	return err
 }
 

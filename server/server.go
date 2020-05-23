@@ -1,7 +1,9 @@
 package eventfullserver
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -10,19 +12,38 @@ import (
 )
 
 func ingest(w http.ResponseWriter, r *http.Request) {
-	var body []byte
+	var tmp, body []byte
+	var unzipped bytes.Buffer
 	var err error
-	if body, err = ioutil.ReadAll(r.Body); err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+	if tmp, err = ioutil.ReadAll(r.Body); err != nil {
+		http.Error(w, "Bad Request.", http.StatusBadRequest)
 		return
 	}
+	switch enc := r.Header.Get("Content-Encoding"); enc {
+	case "":
+		body = tmp
+	case "gzip":
+		zipped := bytes.NewBuffer(tmp)
+		unzipped, err = evecli.UnzipBuffer(*zipped)
+		if err != nil {
+			fmt.Println(err)
+			http.Error(w, "Cannot unzip.", http.StatusBadRequest)
+			return
+		}
+		body = unzipped.Bytes()
+		//fmt.Println(string(body))
+	default:
+		http.Error(w, "Don't know how to unzip.", http.StatusBadRequest)
+		return
+	}
+
 	var evt interface{}
+	//fmt.Println(string(body))
 	if err = json.Unmarshal(body, &evt); err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	evecli.PrintGenericJSON(evt.(map[string]interface{}))
-	//fmt.Fprintf(w, "all good")
 }
 
 //Exec executes the server
