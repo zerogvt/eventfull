@@ -3,13 +3,14 @@ package eventfullserver
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 
 	evecli "github.com/zerogvt/eventfull/client"
 )
+
+const port = ":8080"
 
 func ingest(w http.ResponseWriter, r *http.Request) {
 	var tmp, body []byte
@@ -26,7 +27,7 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 		zipped := bytes.NewBuffer(tmp)
 		unzipped, err = evecli.UnzipBuffer(*zipped)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			http.Error(w, "Cannot unzip.", http.StatusBadRequest)
 			return
 		}
@@ -42,11 +43,12 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	evecli.PrintGenericJSON(evt.(map[string]interface{}))
+	log.Println(evecli.GenericJSONToStr(evt.(map[string]interface{})))
 }
 
 //Exec executes the server
 func Exec() {
 	http.HandleFunc("/ingest", ingest)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Println("Listening on " + port)
+	log.Fatal(http.ListenAndServe(port, nil))
 }

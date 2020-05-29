@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strings"
 	"text/template"
 	"time"
 )
@@ -33,24 +34,28 @@ func readGenericJSON(path string) (map[string]interface{}, error) {
 	return f.(map[string]interface{}), nil
 }
 
-// PrintGenericJSON prints out a generic JSON
-func PrintGenericJSON(m map[string]interface{}) {
+// GenericJSONToStr returns generic JSON map as a string
+func GenericJSONToStr(m map[string]interface{}) string {
+	var res strings.Builder
+	res.WriteString(fmt.Sprintf("{\n"))
 	for k, v := range m {
 		switch vv := v.(type) {
 		case string:
-			fmt.Printf("  %-25s: %s\n", k, vv)
+			res.WriteString(fmt.Sprintf("  %s: %s\n", k, vv))
 		case float64:
-			fmt.Printf("  %-25s: %.2f\n", k, vv)
+			res.WriteString(fmt.Sprintf("  %s: %.2f\n", k, vv))
 		case bool:
-			fmt.Printf("  %-25s: %t\n", k, vv)
+			res.WriteString(fmt.Sprintf("  %s: %t\n", k, vv))
 		case map[string]interface{}:
-			fmt.Print("  [")
-			PrintGenericJSON(vv)
-			fmt.Print("  ]\n")
+			res.WriteString(fmt.Sprint("  ["))
+			res.WriteString(GenericJSONToStr(vv))
+			res.WriteString(fmt.Sprint("  ]\n"))
 		default:
-			fmt.Println(k, "is of a type I don't know how to handle")
+			res.WriteString(fmt.Sprintln(k, "is of a type I don't know how to handle"))
 		}
 	}
+	res.WriteString(fmt.Sprintf("\n}\n"))
+	return res.String()
 }
 
 func getRandomMetric(SLO float64, cutoff float64) float64 {
@@ -168,7 +173,7 @@ func Daemon(configurationFile string, eventTemplateFile string) {
 	conf, err := readGenericJSON(configurationFile)
 	fatalif(err)
 	fmt.Println("Configuration:")
-	PrintGenericJSON(conf)
+	fmt.Print(GenericJSONToStr(conf))
 
 	//Read event template
 	fbytes, err := ioutil.ReadFile(eventTemplateFile)

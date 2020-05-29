@@ -28,6 +28,9 @@ Here you can set specific values for templatized settings in the `event.json`. Y
 - `$ go build`
 - `$ ./eventfull client`
   
+## Run test local server
+- `$ ./eventfull server`
+  
 ## Use cases
 - Test various custom events formats.
 - Test SLO accounting by providing a "service" with guaranteed SLI metrics.

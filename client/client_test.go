@@ -19,3 +19,5 @@ func TestReadGenericJSONFail(t *testing.T) {
 		t.Error("Failed negative test")
 	}
 }
+
+//TODO
