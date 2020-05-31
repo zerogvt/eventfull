@@ -3,14 +3,24 @@ package eventfullserver
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 
 	evecli "github.com/zerogvt/eventfull/client"
 )
 
 const port = ":8080"
+
+type metrics struct {
+	count float64
+	sum   float64
+}
+
+var slis map[string]*metrics
 
 func ingest(w http.ResponseWriter, r *http.Request) {
 	var tmp, body []byte
@@ -37,18 +47,43 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var evt interface{}
+	var rawevt interface{}
 	//fmt.Println(string(body))
-	if err = json.Unmarshal(body, &evt); err != nil {
+	if err = json.Unmarshal(body, &rawevt); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	log.Println(evecli.GenericJSONToStr(evt.(map[string]interface{})))
+	// calc moving average for this metric
+	evt := rawevt.(map[string]interface{})
+	metric := evt["metric"].(string)
+	var metricvalue float64
+	if metricvalue, err = strconv.ParseFloat(evt["value"].(string), 64); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if val, ok := slis[metric]; ok {
+		val.count += 1.0
+		val.sum += metricvalue
+	} else {
+		nm := metrics{count: 1.0, sum: metricvalue}
+		slis[metric] = &nm
+	}
+
+	log.Println(evecli.GenericJSONToStr(evt))
+}
+
+func stats(w http.ResponseWriter, r *http.Request) {
+	for k, v := range slis {
+		io.WriteString(w, fmt.Sprintf("metric: %s, samples: %.0f, sum: %.0f, average: %.2f\n",
+			k, v.count, v.sum, v.sum/v.count))
+	}
 }
 
 //Exec executes the server
 func Exec() {
+	slis = make(map[string]*metrics)
 	http.HandleFunc("/ingest", ingest)
+	http.HandleFunc("/stats", stats)
 	log.Println("Listening on " + port)
 	log.Fatal(http.ListenAndServe(port, nil))
 }
