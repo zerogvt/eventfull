@@ -16,7 +16,15 @@ func main() {
 	}
 	whatamI := os.Args[1]
 	if whatamI == "client" {
-		client.Daemon("conf.json", "event.json")
+		configfile := "conf.json"
+		evttemplate := "event.json"
+		if len(os.Args) > 2 {
+			configfile = os.Args[2]
+		}
+		if len(os.Args) > 3 {
+			evttemplate = os.Args[3]
+		}
+		client.Daemon(configfile, evttemplate)
 	} else if whatamI == "server" {
 		server.Exec()
 	} else {

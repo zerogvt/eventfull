@@ -21,7 +21,8 @@ func fatalif(err error) {
 	}
 }
 
-func readGenericJSON(path string) (map[string]interface{}, error) {
+// ReadGenericJSON reads a json file
+func ReadGenericJSON(path string) (map[string]interface{}, error) {
 	fbytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -170,7 +171,7 @@ func emitEvent(ut *template.Template, conf map[string]interface{}) error {
 // Daemon will loop accordind to settings in configurationFile and
 // send out events cookie cut from eventTemplateFile
 func Daemon(configurationFile string, eventTemplateFile string) {
-	conf, err := readGenericJSON(configurationFile)
+	conf, err := ReadGenericJSON(configurationFile)
 	fatalif(err)
 	fmt.Println("Configuration:")
 	fmt.Print(GenericJSONToStr(conf))

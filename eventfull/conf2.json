@@ -1,8 +1,8 @@
 {
     "url": "http://localhost:8080/ingest",
-    "service_name": "test_service",
+    "service_name": "test_service_2",
     "metric_name":  "test_metric",
-    "metric_cutoff_value": 100,
+    "metric_cutoff_value": 400,
     "metric_slo": 90,
     "repeat_every_msecs": 1000
 }

@@ -55,18 +55,18 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 	}
 	// calc moving average for this metric
 	evt := rawevt.(map[string]interface{})
-	metric := evt["metric"].(string)
+	metrickey := evt["service"].(string) + ":" + evt["metric"].(string)
 	var metricvalue float64
 	if metricvalue, err = strconv.ParseFloat(evt["value"].(string), 64); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if val, ok := slis[metric]; ok {
+	if val, ok := slis[metrickey]; ok {
 		val.count += 1.0
 		val.sum += metricvalue
 	} else {
 		nm := metrics{count: 1.0, sum: metricvalue}
-		slis[metric] = &nm
+		slis[metrickey] = &nm
 	}
 
 	log.Println(evecli.GenericJSONToStr(evt))
