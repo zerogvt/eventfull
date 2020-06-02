@@ -42,15 +42,15 @@ func GenericJSONToStr(m map[string]interface{}) string {
 	for k, v := range m {
 		switch vv := v.(type) {
 		case string:
-			res.WriteString(fmt.Sprintf("  %s: %s\n", k, vv))
+			res.WriteString(fmt.Sprintf("  %s: %s,\n", k, vv))
 		case float64:
-			res.WriteString(fmt.Sprintf("  %s: %.2f\n", k, vv))
+			res.WriteString(fmt.Sprintf("  %s: %.2f,\n", k, vv))
 		case bool:
-			res.WriteString(fmt.Sprintf("  %s: %t\n", k, vv))
+			res.WriteString(fmt.Sprintf("  %s: %t,\n", k, vv))
 		case map[string]interface{}:
 			res.WriteString(fmt.Sprint("  ["))
 			res.WriteString(GenericJSONToStr(vv))
-			res.WriteString(fmt.Sprint("  ]\n"))
+			res.WriteString(fmt.Sprint("  ],\n"))
 		default:
 			res.WriteString(fmt.Sprintln(k, "is of a type I don't know how to handle"))
 		}
@@ -102,28 +102,19 @@ func UnzipBuffer(zipped bytes.Buffer) (bytes.Buffer, error) {
 	return *bytes.NewBuffer(unzipped), err
 }
 
-func postEventToNR(buf bytes.Buffer) error {
-	var err error
-	var resp *http.Response
-	var body []byte
-	nrURL := fmt.Sprintf("https://insights-collector.newrelic.com/v1/accounts/%s/events",
-		os.Getenv("NEW_RELIC_ACCOUNT_ID"))
-	client := &http.Client{}
-	req, err := http.NewRequest("POST", nrURL, bytes.NewReader(buf.Bytes()))
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("X-Insert-Key", os.Getenv("NEW_RELIC_INSIGHTS_KEY"))
-	req.Header.Add("Content-Encoding", "gzip")
-	resp, err = client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	body, err = ioutil.ReadAll(resp.Body)
-	fmt.Printf("Response code: %s, body: %s\n", resp.Status, string(body))
-	return err
+type kv struct {
+	key   string
+	value string
 }
 
-func postEvent(url string, buf bytes.Buffer) error {
+func postEventToNR(buf bytes.Buffer) error {
+	nrURL := fmt.Sprintf("https://insights-collector.newrelic.com/v1/accounts/%s/events",
+		os.Getenv("NEW_RELIC_ACCOUNT_ID"))
+	nrInsightsKeyHeader := kv{"X-Insert-Key", os.Getenv("NEW_RELIC_INSIGHTS_KEY")}
+	return postBuffer(nrURL, buf, nrInsightsKeyHeader)
+}
+
+func postBuffer(url string, buf bytes.Buffer, headers ...kv) error {
 	var err error
 	var resp *http.Response
 	var body []byte
@@ -131,6 +122,9 @@ func postEvent(url string, buf bytes.Buffer) error {
 	req, err := http.NewRequest("POST", url, bytes.NewReader(buf.Bytes()))
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Content-Encoding", "gzip")
+	for _, h := range headers {
+		req.Header.Add(h.key, h.value)
+	}
 	resp, err = client.Do(req)
 	if err != nil {
 		fmt.Printf("[ERROR] %s\n", err)
@@ -160,7 +154,7 @@ func emitEvent(ut *template.Template, conf map[string]interface{}) error {
 	}
 
 	if url, ok := conf["url"]; ok {
-		err = postEvent(url.(string), zbuf)
+		err = postBuffer(url.(string), zbuf)
 	} else {
 		//send gzipped json to NR
 		err = postEventToNR(zbuf)
@@ -168,7 +162,19 @@ func emitEvent(ut *template.Template, conf map[string]interface{}) error {
 	return err
 }
 
-// Daemon will loop accordind to settings in configurationFile and
+func postJSON(url string, data map[string]interface{}) error {
+	databytes, err := json.Marshal(data)
+	fmt.Println(string(databytes))
+
+	//gzip json
+	zbuf, err := gzipBuffer(*bytes.NewBuffer(databytes))
+	if err != nil {
+		return err
+	}
+	return postBuffer(url, zbuf)
+}
+
+// Daemon will loop according to settings in configurationFile and
 // send out events cookie cut from eventTemplateFile
 func Daemon(configurationFile string, eventTemplateFile string) {
 	conf, err := ReadGenericJSON(configurationFile)
@@ -181,6 +187,7 @@ func Daemon(configurationFile string, eventTemplateFile string) {
 	ut, err := template.New("event").Parse(string(fbytes))
 	fatalif(err)
 
+	postJSON(conf["url"].(string), conf)
 	//create and send an event
 	for repeat := true; repeat; {
 		emitEvent(ut, conf)
