@@ -1,6 +1,6 @@
 {
     "eventType":    "SLI",
-    "service":      "{{.service_name}}",
-    "metric":       "{{.metric_name}}",
-    "value":        "{{.metric_value}}"
+    "service":      "{{.service}}",
+    "metric":       "{{.metric}}",
+    "value":        "{{.value}}"
 }

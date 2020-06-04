@@ -138,8 +138,8 @@ func postBuffer(url string, buf bytes.Buffer, headers ...kv) error {
 
 func emitEvent(ut *template.Template, conf map[string]interface{}) error {
 	//Get our "value"
-	conf["metric_value"] = getRandomMetric(conf["metric_slo"].(float64),
-		conf["metric_cutoff_value"].(float64))
+	conf["value"] = getRandomMetric(conf["slo"].(float64),
+		conf["cutoff_value"].(float64))
 
 	//Execute template according to configuration conf
 	evt, err := createEvent(ut, conf)
@@ -187,6 +187,7 @@ func Daemon(configurationFile string, eventTemplateFile string) {
 	ut, err := template.New("event").Parse(string(fbytes))
 	fatalif(err)
 
+	conf["eventType"] = "registration"
 	postJSON(conf["url"].(string), conf)
 	//create and send an event
 	for repeat := true; repeat; {
