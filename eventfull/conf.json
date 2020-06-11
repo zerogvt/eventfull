@@ -3,6 +3,7 @@
     "service": "test_service",
     "metric":  "test_metric",
     "cutoff_value": 100,
-    "slo": 90,
-    "repeat_every_msecs": 1000
+    "sli": 90,
+    "slo": 99,
+    "repeat_every_msecs": 1
 }

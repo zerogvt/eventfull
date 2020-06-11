@@ -132,13 +132,15 @@ func postBuffer(url string, buf bytes.Buffer, headers ...kv) error {
 	}
 	defer resp.Body.Close()
 	body, err = ioutil.ReadAll(resp.Body)
-	fmt.Printf("Response code: %s, body: %s\n", resp.Status, string(body))
+	if _, debug := os.LookupEnv("DEBUG"); debug {
+		fmt.Printf("Response code: %s, body: %s\n", resp.Status, string(body))
+	}
 	return err
 }
 
 func emitEvent(ut *template.Template, conf map[string]interface{}) error {
 	//Get our "value"
-	conf["value"] = getRandomMetric(conf["slo"].(float64),
+	conf["value"] = getRandomMetric(conf["sli"].(float64),
 		conf["cutoff_value"].(float64))
 
 	//Execute template according to configuration conf
@@ -147,7 +149,9 @@ func emitEvent(ut *template.Template, conf map[string]interface{}) error {
 		return err
 	}
 	//gzip evt json
-	fmt.Printf("\nWill zip and POST evt:%s", string(evt.Bytes()))
+	if _, debug := os.LookupEnv("DEBUG"); debug {
+		fmt.Printf("\nWill zip and POST evt:%s", string(evt.Bytes()))
+	}
 	zbuf, err := gzipBuffer(evt)
 	if err != nil {
 		return err
@@ -187,9 +191,11 @@ func Daemon(configurationFile string, eventTemplateFile string) {
 	ut, err := template.New("event").Parse(string(fbytes))
 	fatalif(err)
 
+	//register to server
 	conf["eventType"] = "registration"
 	postJSON(conf["url"].(string), conf)
-	//create and send an event
+
+	//repeateadly create and send events
 	for repeat := true; repeat; {
 		emitEvent(ut, conf)
 		repeat = false

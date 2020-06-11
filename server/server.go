@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
 	evecli "github.com/zerogvt/eventfull/client"
@@ -20,14 +21,17 @@ type metrics struct {
 	count       float64
 	sum         float64
 	cutoffValue float64
-	slo         float64
+	_under      float64
+	_over       float64
+	SLI         float64 //Service Level Indicator (what we really get)
+	SLO         float64 //Service Level Objective (what we want)
 }
 
 var slis map[string]*metrics
 
 func (m metrics) str() string {
-	return fmt.Sprintf("count: %.0f, sum: %.0f, cutoffValue: %.0f, slo: %.0f",
-		m.count, m.sum, m.cutoffValue, m.slo)
+	return fmt.Sprintf("count: %.0f, sum: %.0f, cutoffValue: %.0f, slo: %.4f, sli: %.4f",
+		m.count, m.sum, m.cutoffValue, m.SLO, m.SLI)
 }
 
 func decode(r *http.Request) (map[string]interface{}, error) {
@@ -85,7 +89,9 @@ func ingest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	log.Println(evecli.GenericJSONToStr(evt))
+	if _, debug := os.LookupEnv("DEBUG"); debug {
+		log.Println(evecli.GenericJSONToStr(evt))
+	}
 }
 
 func updateMetric(evt map[string]interface{}) error {
@@ -98,6 +104,12 @@ func updateMetric(evt map[string]interface{}) error {
 	if val, ok := slis[metrickey]; ok {
 		val.count += 1.0
 		val.sum += metricvalue
+		if metricvalue <= val.cutoffValue {
+			val._under++
+		} else {
+			val._over++
+		}
+		val.SLI = 100 * val._under / (val._over + val._under)
 	} else {
 		nm := metrics{count: 1.0, sum: metricvalue}
 		slis[metrickey] = &nm
@@ -108,14 +120,18 @@ func updateMetric(evt map[string]interface{}) error {
 func register(evt map[string]interface{}) error {
 	metrickey := evt["service"].(string) + ":" + evt["metric"].(string)
 	metricCutoffValue := evt["cutoff_value"].(float64)
-	metricSLO := evt["slo"].(float64)
+	slo := evt["slo"].(float64)
 	if _, ok := slis[metrickey]; !ok {
-		nm := metrics{count: 1.0, sum: 0.0,
-			cutoffValue: metricCutoffValue, slo: metricSLO}
+		nm := metrics{
+			count:       1.0,
+			sum:         0.0,
+			cutoffValue: metricCutoffValue,
+			SLO:         slo,
+		}
 		slis[metrickey] = &nm
 	} else {
 		slis[metrickey].cutoffValue = metricCutoffValue
-		slis[metrickey].slo = metricSLO
+		slis[metrickey].SLO = slo
 	}
 
 	fmt.Printf("Registered: %s with %s\n", metrickey, slis[metrickey].str())
@@ -123,9 +139,8 @@ func register(evt map[string]interface{}) error {
 }
 
 func stats(w http.ResponseWriter, r *http.Request) {
-	for k, v := range slis {
-		io.WriteString(w, fmt.Sprintf("metric: %s, samples: %.0f, sum: %.0f, average: %.2f\n",
-			k, v.count, v.sum, v.sum/v.count))
+	for _, v := range slis {
+		io.WriteString(w, fmt.Sprintf("%s\n", v.str()))
 	}
 }
 
