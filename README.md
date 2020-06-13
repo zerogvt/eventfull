@@ -19,7 +19,20 @@ Values can be set to go's template variables e.g. `{{.service_name}}` which you 
 ## Configuration JSON
 
 `conf.json` holds up configuration values.
-Here you can set specific values for templatized settings in the `event.json`. You can also set up specific values for your metrics, such as `metric_slo` (which needs to be a percentage) and `metric_cutoff_value`. Eventfull will produce events whose value will -over time- be below the cutoff value at `metric_cutoff_value` percentage. E.g. if you set `metric_cutoff_value` to 90.0 then 90.0% of the produced events will be below cutoff value.
+Here you can set specific values for templatized settings in the `event.json`. 
+If you set a `url` then the events will be sent to that endpoint rather than NR.
+You can set up specific values for your metrics, such as `sli` (which needs to be a percentage) and `metric_cutoff_value`. Eventfull will produce events whose value will -over time- be below the cutoff value at `sli` percentage. E.g. if you set `metric_cutoff_value` to 180 and `sli` to 90.0 then 90.0% of the produced events will be below 180 thus giving you a guaranteed Service Level Indicator of 90%. `slo` (Service Level Objective) on the other hand is the wanted objective for your service. You can start of next sample configuration if you want to use owr own server for experimentation:
+```
+{
+    "url": "http://localhost:8080/ingest",
+    "service": "test_service",
+    "metric":  "test_metric",
+    "cutoff_value": 100,
+    "sli": 90,
+    "slo": 99,
+    "repeat_every_msecs": 1
+}
+```
 
 ## How to build and use
 - clone this repo
@@ -30,6 +43,9 @@ Here you can set specific values for templatized settings in the `event.json`. Y
   
 ## Run test local server
 - `$ ./eventfull server`
+
+## Local server endpoints:
+- `http://localhost:8080/stats`
   
 ## Use cases
 - Test various custom events formats.
