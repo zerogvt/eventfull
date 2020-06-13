@@ -2,10 +2,10 @@
 
 # Eventfull
 
-Eventfull is a tiny application that can serve as a custom events source for [New Relic](https://docs.newrelic.com/docs/insights/insights-data-sources/custom-data/introduction-event-api).
+Eventfull is a tiny application that can serve as a custom events source for [New Relic](https://docs.newrelic.com/docs/insights/insights-data-sources/custom-data/introduction-event-api) or any other event sink. A sample events sink server is also included.
 
 # Preconditions
-You need next environmental variables set:
+You need next environmental variables set if you plan to use NR as events destination:
 `NEW_RELIC_ACCOUNT_ID` and `NEW_RELIC_INSIGHTS_KEY` as per [New Relic referrence](https://docs.newrelic.com/docs/insights/insights-data-sources/custom-data/introduction-event-api).
 
 # User Interface
