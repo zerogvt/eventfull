@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -18,9 +17,11 @@ import (
 const port = ":8080"
 
 type metrics struct {
-	count       float64
-	sum         float64
-	cutoffValue float64
+	Service     string
+	Metric      string
+	Count       float64
+	Sum         float64
+	CutoffValue float64
 	_under      float64
 	_over       float64
 	SLI         float64 //Service Level Indicator (what we really get)
@@ -31,7 +32,7 @@ var slis map[string]*metrics
 
 func (m metrics) str() string {
 	return fmt.Sprintf("count: %.0f, sum: %.0f, cutoffValue: %.0f, slo: %.4f, sli: %.4f",
-		m.count, m.sum, m.cutoffValue, m.SLO, m.SLI)
+		m.Count, m.Sum, m.CutoffValue, m.SLO, m.SLI)
 }
 
 func decode(r *http.Request) (map[string]interface{}, error) {
@@ -102,16 +103,20 @@ func updateMetric(evt map[string]interface{}) error {
 		return err
 	}
 	if val, ok := slis[metrickey]; ok {
-		val.count += 1.0
-		val.sum += metricvalue
-		if metricvalue <= val.cutoffValue {
+		val.Count += 1.0
+		val.Sum += metricvalue
+		if metricvalue <= val.CutoffValue {
 			val._under++
 		} else {
 			val._over++
 		}
 		val.SLI = 100 * val._under / (val._over + val._under)
 	} else {
-		nm := metrics{count: 1.0, sum: metricvalue}
+		nm := metrics{
+			Service: evt["service"].(string),
+			Metric:  evt["metric"].(string),
+			Count:   1.0,
+			Sum:     metricvalue}
 		slis[metrickey] = &nm
 	}
 	return nil
@@ -123,14 +128,16 @@ func register(evt map[string]interface{}) error {
 	slo := evt["slo"].(float64)
 	if _, ok := slis[metrickey]; !ok {
 		nm := metrics{
-			count:       1.0,
-			sum:         0.0,
-			cutoffValue: metricCutoffValue,
+			Service:     evt["service"].(string),
+			Metric:      evt["metric"].(string),
+			Count:       1.0,
+			Sum:         0.0,
+			CutoffValue: metricCutoffValue,
 			SLO:         slo,
 		}
 		slis[metrickey] = &nm
 	} else {
-		slis[metrickey].cutoffValue = metricCutoffValue
+		slis[metrickey].CutoffValue = metricCutoffValue
 		slis[metrickey].SLO = slo
 	}
 
@@ -139,8 +146,11 @@ func register(evt map[string]interface{}) error {
 }
 
 func stats(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	for _, v := range slis {
-		io.WriteString(w, fmt.Sprintf("%s\n", v.str()))
+		print(v)
+		json.NewEncoder(w).Encode(v)
+		//io.WriteString(w, fmt.Sprintf("%s\n", v.json()))
 	}
 }
 
