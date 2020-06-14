@@ -148,9 +148,7 @@ func register(evt map[string]interface{}) error {
 func stats(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	for _, v := range slis {
-		print(v)
 		json.NewEncoder(w).Encode(v)
-		//io.WriteString(w, fmt.Sprintf("%s\n", v.json()))
 	}
 }
 
